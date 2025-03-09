@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程和评估管理</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; background-color: #f9f9f9; }
+        .course-row { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff; border-radius: 5px; cursor: pointer; }
+        .course-row.selected { border-color: #007bff; background-color: #e9f7ff; }
+        .course-title { font-weight: bold; margin-bottom: 10px; }
+        .course-info { display: flex; gap: 10px; margin-bottom: 10px; }
+        .course-info input { flex: 1; padding: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .assessment-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .assessment-table th, .assessment-table td { padding: 5px; border: 1px solid #eee; text-align: left; }
+        button { padding: 5px 10px; margin: 5px 0; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .add-assessment { background-color: #007bff; }
+        .delete-assessment { background-color: #dc3545; }
+        .global-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        #addCourse { background-color: #28a745; }
+        #deleteCourse, #submit { background-color: #dc3545; }
+        #submit { background-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div id="courseContainer">
+        <div class="course-row">
+            <h4 class="course-title">课程 1</h4>
+            <div class="course-info">
+                <input type="text" class="course-name" placeholder="课程名称" required>
+                <input type="text" class="course-code" placeholder="课程代码" required>
+                <input type="text" class="semester" placeholder="学期" required>
+            </div>
+            <div class="assessment-container">
+                <table class="assessment-table">
+                    <thead>
+                        <tr>
+                            <th>评估类型</th>
+                            <th>评估时间</th>
+                            <th>提交时间（仅限作业）</th>
+                            <th>成绩</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="assessment-row">
+                            <td>
+                                <select class="assessment-type" required>
+                                    <option value="" disabled selected>选择类型</option>
+                                    <option value="exam">考试</option>
+                                    <option value="quiz">小测</option>
+                                    <option value="essay">论文</option>
+                                    <option value="project">项目</option>
+                                </select>
+                            </td>
+                            <td><input type="datetime-local" class="assessment-date" required></td>
+                            <td><input type="datetime-local" class="submission-date" style="display: none;"></td>
+                            <td><input type="text" class="grade" placeholder="例如：90"></td>
+                            <td><button class="delete-assessment">删除</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="add-assessment">添加评估</button>
+        </div>
+    </div>
+    <div class="global-buttons">
+        <button id="addCourse">添加课程</button>
+        <button id="deleteCourse">删除课程</button>
+        <button id="submit">提交</button>
+    </div>
+
+    <script>
+        // 更新课程标题
+        function updateCourseTitles() {
+            document.querySelectorAll('.course-row').forEach((row, index) => {
+                row.querySelector('.course-title').textContent = `课程 ${index + 1}`;
+            });
+        }
+
+        // 选中课程
+        let selectedCourse = null;
+        document.getElementById('courseContainer').addEventListener('click', (e) => {
+            const courseRow = e.target.closest('.course-row');
+            if (courseRow) {
+                if (selectedCourse) selectedCourse.classList.remove('selected');
+                selectedCourse = courseRow;
+                selectedCourse.classList.add('selected');
+            }
+        });
+
+        // 添加课程
+        document.getElementById('addCourse').addEventListener('click', () => {
+            const newCourse = document.querySelector('.course-row').cloneNode(true);
+            newCourse.classList.remove('selected');
+            newCourse.querySelector('.course-name').value = '';
+            newCourse.querySelector('.course-code').value = '';
+            newCourse.querySelector('.semester').value = '';
+            const tbody = newCourse.querySelector('.assessment-table tbody');
+            tbody.innerHTML = `
+                <tr class="assessment-row">
+                    <td><select class="assessment-type" required>
+                        <option value="" disabled selected>选择类型</option>
+                        <option value="exam">考试</option>
+                        <option value="quiz">小测</option>
+                        <option value="essay">论文</option>
+                        <option value="project">项目</option>
+                    </select></td>
+                    <td><input type="datetime-local" class="assessment-date" required></td>
+                    <td><input type="datetime-local" class="submission-date" style="display: none;"></td>
+                    <td><input type="text" class="grade" placeholder="例如：90"></td>
+                    <td><button class="delete-assessment">删除</button></td>
+                </tr>`;
+            document.getElementById('courseContainer').appendChild(newCourse);
+            updateCourseTitles();
+        });
+
+        // 删除课程
+        document.getElementById('deleteCourse').addEventListener('click', () => {
+            if (selectedCourse && document.querySelectorAll('.course-row').length > 1) {
+                selectedCourse.remove();
+                selectedCourse = null;
+                updateCourseTitles();
+            } else {
+                alert('请先选择课程，或至少保留一门课程。');
+            }
+        });
+
+        // 添加/删除评估
+        document.getElementById('courseContainer').addEventListener('click', (e) => {
+            if (e.target.classList.contains('add-assessment')) {
+                const tbody = e.target.parentElement.querySelector('.assessment-table tbody');
+                const newRow = tbody.querySelector('.assessment-row').cloneNode(true);
+                newRow.querySelectorAll('input').forEach(input => input.value = '');
+                newRow.querySelector('.assessment-type').selectedIndex = 0;
+                tbody.appendChild(newRow);
+            } else if (e.target.classList.contains('delete-assessment')) {
+                const tbody = e.target.closest('tbody');
+                if (tbody.querySelectorAll('.assessment-row').length > 1) {
+                    e.target.closest('tr').remove();
+                } else {
+                    alert('每门课程至少保留一个评估。');
+                }
+            }
+        });
+
+        // 动态显示提交时间
+        document.getElementById('courseContainer').addEventListener('change', (e) => {
+            if (e.target.classList.contains('assessment-type')) {
+                const row = e.target.closest('tr');
+                const submissionDate = row.querySelector('.submission-date');
+                submissionDate.style.display = (e.target.value === 'essay' || e.target.value === 'project') ? 'block' : 'none';
+                if (submissionDate.style.display === 'none') submissionDate.value = '';
+            }
+        });
+
+        // 提交数据
+        document.getElementById('submit').addEventListener('click', () => {
+            const courses = [];
+            document.querySelectorAll('.course-row').forEach(row => {
+                const course = {
+                    name: row.querySelector('.course-name').value,
+                    code: row.querySelector('.course-code').value,
+                    semester: row.querySelector('.semester').value,
+                    assessments: []
+                };
+                row.querySelectorAll('.assessment-row').forEach(assessment => {
+                    const type = assessment.querySelector('.assessment-type').value;
+                    const date = assessment.querySelector('.assessment-date').value;
+                    const submission = assessment.querySelector('.submission-date').value || null;
+                    const grade = assessment.querySelector('.grade').value || null;
+                    if (type && date) course.assessments.push({ type, date, submission, grade });
+                });
+                if (course.name && course.code && course.semester && course.assessments.length > 0) {
+                    courses.push(course);
+                }
+            });
+
+            if (courses.length === 0) {
+                alert('请至少填写一门课程和一个评估。');
+                return;
+            }
+            console.log(JSON.stringify(courses)); // 可替换为实际提交逻辑
+            alert('数据提交成功！');
+        });
+    </script>
+</body>
+</html>
