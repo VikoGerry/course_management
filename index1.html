@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>课程和评估管理</title>
+    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 10px; background-color: #f9f9f9; }
         .course-row { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff; border-radius: 5px; cursor: pointer; }
@@ -67,121 +68,135 @@
     <div class="global-buttons">
         <button id="addCourse">添加课程</button>
         <button id="deleteCourse">删除课程</button>
+        <!-- 提交按钮仅作视觉展示，实际提交由 JFCustomWidget 的 submit 事件触发 -->
         <button id="submit">提交</button>
     </div>
 
     <script>
-        // 更新课程标题
-        function updateCourseTitles() {
-            document.querySelectorAll('.course-row').forEach((row, index) => {
-                row.querySelector('.course-title').textContent = `课程 ${index + 1}`;
-            });
-        }
-
-        // 选中课程
-        let selectedCourse = null;
-        document.getElementById('courseContainer').addEventListener('click', (e) => {
-            const courseRow = e.target.closest('.course-row');
-            if (courseRow) {
-                if (selectedCourse) selectedCourse.classList.remove('selected');
-                selectedCourse = courseRow;
-                selectedCourse.classList.add('selected');
+        // 使用 JotForm 小组件的 ready 事件
+        JFCustomWidget.subscribe("ready", function(){
+            // 如果有需要，可以通过 widget setting 设置标题或其他参数
+            var widgetLabel = JFCustomWidget.getWidgetSetting('QuestionLabel');
+            if(widgetLabel){
+                document.title = widgetLabel;
             }
-        });
 
-        // 添加课程
-        document.getElementById('addCourse').addEventListener('click', () => {
-            const newCourse = document.querySelector('.course-row').cloneNode(true);
-            newCourse.classList.remove('selected');
-            newCourse.querySelector('.course-name').value = '';
-            newCourse.querySelector('.course-code').value = '';
-            newCourse.querySelector('.semester').value = '';
-            const tbody = newCourse.querySelector('.assessment-table tbody');
-            tbody.innerHTML = `
-                <tr class="assessment-row">
-                    <td><select class="assessment-type" required>
-                        <option value="" disabled selected>选择类型</option>
-                        <option value="exam">考试</option>
-                        <option value="quiz">小测</option>
-                        <option value="essay">论文</option>
-                        <option value="project">项目</option>
-                    </select></td>
-                    <td><input type="datetime-local" class="assessment-date" required></td>
-                    <td><input type="datetime-local" class="submission-date" style="display: none;"></td>
-                    <td><input type="text" class="grade" placeholder="例如：90"></td>
-                    <td><button class="delete-assessment">删除</button></td>
-                </tr>`;
-            document.getElementById('courseContainer').appendChild(newCourse);
-            updateCourseTitles();
-        });
-
-        // 删除课程
-        document.getElementById('deleteCourse').addEventListener('click', () => {
-            if (selectedCourse && document.querySelectorAll('.course-row').length > 1) {
-                selectedCourse.remove();
-                selectedCourse = null;
-                updateCourseTitles();
-            } else {
-                alert('请先选择课程，或至少保留一门课程。');
-            }
-        });
-
-        // 添加/删除评估
-        document.getElementById('courseContainer').addEventListener('click', (e) => {
-            if (e.target.classList.contains('add-assessment')) {
-                const tbody = e.target.parentElement.querySelector('.assessment-table tbody');
-                const newRow = tbody.querySelector('.assessment-row').cloneNode(true);
-                newRow.querySelectorAll('input').forEach(input => input.value = '');
-                newRow.querySelector('.assessment-type').selectedIndex = 0;
-                tbody.appendChild(newRow);
-            } else if (e.target.classList.contains('delete-assessment')) {
-                const tbody = e.target.closest('tbody');
-                if (tbody.querySelectorAll('.assessment-row').length > 1) {
-                    e.target.closest('tr').remove();
-                } else {
-                    alert('每门课程至少保留一个评估。');
-                }
-            }
-        });
-
-        // 动态显示提交时间
-        document.getElementById('courseContainer').addEventListener('change', (e) => {
-            if (e.target.classList.contains('assessment-type')) {
-                const row = e.target.closest('tr');
-                const submissionDate = row.querySelector('.submission-date');
-                submissionDate.style.display = (e.target.value === 'essay' || e.target.value === 'project') ? 'block' : 'none';
-                if (submissionDate.style.display === 'none') submissionDate.value = '';
-            }
-        });
-
-        // 提交数据
-        document.getElementById('submit').addEventListener('click', () => {
-            const courses = [];
-            document.querySelectorAll('.course-row').forEach(row => {
-                const course = {
-                    name: row.querySelector('.course-name').value,
-                    code: row.querySelector('.course-code').value,
-                    semester: row.querySelector('.semester').value,
-                    assessments: []
-                };
-                row.querySelectorAll('.assessment-row').forEach(assessment => {
-                    const type = assessment.querySelector('.assessment-type').value;
-                    const date = assessment.querySelector('.assessment-date').value;
-                    const submission = assessment.querySelector('.submission-date').value || null;
-                    const grade = assessment.querySelector('.grade').value || null;
-                    if (type && date) course.assessments.push({ type, date, submission, grade });
+            // 更新课程标题
+            function updateCourseTitles() {
+                document.querySelectorAll('.course-row').forEach((row, index) => {
+                    row.querySelector('.course-title').textContent = `课程 ${index + 1}`;
                 });
-                if (course.name && course.code && course.semester && course.assessments.length > 0) {
-                    courses.push(course);
+            }
+
+            // 选中课程
+            let selectedCourse = null;
+            document.getElementById('courseContainer').addEventListener('click', (e) => {
+                const courseRow = e.target.closest('.course-row');
+                if (courseRow) {
+                    if (selectedCourse) selectedCourse.classList.remove('selected');
+                    selectedCourse = courseRow;
+                    selectedCourse.classList.add('selected');
                 }
             });
 
-            if (courses.length === 0) {
-                alert('请至少填写一门课程和一个评估。');
-                return;
-            }
-            console.log(JSON.stringify(courses)); // 可替换为实际提交逻辑
-            alert('数据提交成功！');
+            // 添加课程
+            document.getElementById('addCourse').addEventListener('click', () => {
+                const newCourse = document.querySelector('.course-row').cloneNode(true);
+                newCourse.classList.remove('selected');
+                newCourse.querySelector('.course-name').value = '';
+                newCourse.querySelector('.course-code').value = '';
+                newCourse.querySelector('.semester').value = '';
+                const tbody = newCourse.querySelector('.assessment-table tbody');
+                tbody.innerHTML = `
+                    <tr class="assessment-row">
+                        <td><select class="assessment-type" required>
+                            <option value="" disabled selected>选择类型</option>
+                            <option value="exam">考试</option>
+                            <option value="quiz">小测</option>
+                            <option value="essay">论文</option>
+                            <option value="project">项目</option>
+                        </select></td>
+                        <td><input type="datetime-local" class="assessment-date" required></td>
+                        <td><input type="datetime-local" class="submission-date" style="display: none;"></td>
+                        <td><input type="text" class="grade" placeholder="例如：90"></td>
+                        <td><button class="delete-assessment">删除</button></td>
+                    </tr>`;
+                document.getElementById('courseContainer').appendChild(newCourse);
+                updateCourseTitles();
+            });
+
+            // 删除课程
+            document.getElementById('deleteCourse').addEventListener('click', () => {
+                if (selectedCourse && document.querySelectorAll('.course-row').length > 1) {
+                    selectedCourse.remove();
+                    selectedCourse = null;
+                    updateCourseTitles();
+                } else {
+                    alert('请先选择课程，或至少保留一门课程。');
+                }
+            });
+
+            // 添加/删除评估（使用事件委托）
+            document.getElementById('courseContainer').addEventListener('click', (e) => {
+                if (e.target.classList.contains('add-assessment')) {
+                    const tbody = e.target.parentElement.querySelector('.assessment-table tbody');
+                    const newRow = tbody.querySelector('.assessment-row').cloneNode(true);
+                    newRow.querySelectorAll('input').forEach(input => input.value = '');
+                    newRow.querySelector('.assessment-type').selectedIndex = 0;
+                    tbody.appendChild(newRow);
+                } else if (e.target.classList.contains('delete-assessment')) {
+                    const tbody = e.target.closest('tbody');
+                    if (tbody.querySelectorAll('.assessment-row').length > 1) {
+                        e.target.closest('tr').remove();
+                    } else {
+                        alert('每门课程至少保留一个评估。');
+                    }
+                }
+            });
+
+            // 动态显示提交时间（仅针对论文和项目类型）
+            document.getElementById('courseContainer').addEventListener('change', (e) => {
+                if (e.target.classList.contains('assessment-type')) {
+                    const row = e.target.closest('tr');
+                    const submissionDate = row.querySelector('.submission-date');
+                    submissionDate.style.display = (e.target.value === 'essay' || e.target.value === 'project') ? 'block' : 'none';
+                    if (submissionDate.style.display === 'none') submissionDate.value = '';
+                }
+            });
+
+            // 订阅 JotForm 的提交事件，收集并提交数据到 JotForm
+            JFCustomWidget.subscribe("submit", function(){
+                const courses = [];
+                document.querySelectorAll('.course-row').forEach(row => {
+                    const course = {
+                        name: row.querySelector('.course-name').value,
+                        code: row.querySelector('.course-code').value,
+                        semester: row.querySelector('.semester').value,
+                        assessments: []
+                    };
+                    row.querySelectorAll('.assessment-row').forEach(assessment => {
+                        const type = assessment.querySelector('.assessment-type').value;
+                        const date = assessment.querySelector('.assessment-date').value;
+                        const submission = assessment.querySelector('.submission-date').value || null;
+                        const grade = assessment.querySelector('.grade').value || null;
+                        if (type && date) {
+                            course.assessments.push({ type, date, submission, grade });
+                        }
+                    });
+                    if (course.name && course.code && course.semester && course.assessments.length > 0) {
+                        courses.push(course);
+                    }
+                });
+                
+                if (courses.length === 0) {
+                    alert('请至少填写一门课程和一个评估。');
+                    // 传递 invalid 数据，阻止提交
+                    JFCustomWidget.sendSubmit({ valid: false });
+                    return;
+                }
+                // 传递提交数据到 JotForm
+                JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(courses) });
+            });
         });
     </script>
 </body>
